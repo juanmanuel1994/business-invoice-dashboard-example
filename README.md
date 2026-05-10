@@ -13,8 +13,6 @@ Professional invoice dashboard example designed for digital services, advertisem
 
 ## Technologies
 
-- JavaScript
 - HTML
 - CSS
-- JSON
 - Dashboard Systems
