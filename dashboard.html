@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estudio Creativo Vega SL · Financial Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --card2: #21253a;
+    --border: #2a2f45;
+    --green: #22c55e;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --purple: #a855f7;
+    --yellow: #f59e0b;
+    --cyan: #06b6d4;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #6366f1;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+  /* HEADER */
+  .header {
+    background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 60%, #0f1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 32px 40px 28px;
+    display: flex; align-items: flex-end; justify-content: space-between;
+  }
+  .header-left h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+  .header-left p { color: var(--muted); font-size: 14px; margin-top: 4px; }
+  .badge {
+    background: var(--accent); color: #fff; font-size: 11px; font-weight: 600;
+    padding: 4px 12px; border-radius: 20px; letter-spacing: 0.4px;
+  }
+
+  /* MAIN */
+  .main { padding: 32px 40px; max-width: 1400px; margin: 0 auto; }
+
+  /* KPI CARDS */
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px;
+  }
+  .kpi {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 22px 24px; position: relative; overflow: hidden;
+  }
+  .kpi::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  }
+  .kpi.green::before { background: var(--green); }
+  .kpi.red::before { background: var(--red); }
+  .kpi.blue::before { background: var(--blue); }
+  .kpi.purple::before { background: var(--purple); }
+  .kpi-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 10px; }
+  .kpi-value { font-size: 30px; font-weight: 800; letter-spacing: -1px; }
+  .kpi.green .kpi-value { color: var(--green); }
+  .kpi.red .kpi-value { color: var(--red); }
+  .kpi.blue .kpi-value { color: var(--blue); }
+  .kpi.purple .kpi-value { color: var(--purple); }
+  .kpi-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  /* CHARTS ROW */
+  .charts-row { display: grid; grid-template-columns: 1fr 380px; gap: 16px; margin-bottom: 28px; }
+
+  /* QUARTERLY ROW */
+  .quarter-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+
+  /* CARD */
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 24px;
+  }
+  .card-title {
+    font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--muted); margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
+  }
+  .card-title span { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+  .card-title .dot-green { background: var(--green); }
+  .card-title .dot-red { background: var(--red); }
+  .card-title .dot-blue { background: var(--blue); }
+  .card-title .dot-purple { background: var(--purple); }
+
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    text-align: left; color: var(--muted); font-weight: 600; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.6px; padding: 0 12px 12px; border-bottom: 1px solid var(--border);
+  }
+  th:last-child, td:last-child { text-align: right; }
+  td { padding: 11px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.025); }
+  .inv-num { color: var(--accent); font-weight: 600; font-size: 12px; font-family: monospace; }
+  .exp-num { color: var(--red); font-weight: 600; font-size: 12px; font-family: monospace; }
+  .amount-pos { color: var(--green); font-weight: 700; }
+  .amount-neg { color: var(--red); font-weight: 700; }
+  .amount-neutral { color: var(--text); font-weight: 600; }
+  .client-name { font-weight: 500; }
+  .desc-cell { color: var(--muted); max-width: 240px; }
+  .date-cell { color: var(--muted); font-size: 12px; white-space: nowrap; }
+
+  /* TFOOT */
+  tfoot td {
+    border-top: 2px solid var(--border); border-bottom: none;
+    font-weight: 700; padding-top: 14px; color: var(--text);
+  }
+
+  /* P&L SUMMARY */
+  .pl-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px;
+  }
+  .pl-row:last-child { border-bottom: none; }
+  .pl-row.divider { border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+  .pl-row.total { padding-top: 16px; font-size: 18px; font-weight: 800; }
+  .pl-label { color: var(--muted); }
+  .pl-label.bold { color: var(--text); font-weight: 600; }
+
+  /* QUARTERLY CARDS */
+  .q-card {
+    border-radius: 12px; padding: 24px; position: relative; overflow: hidden;
+  }
+  .q-card.q4 { background: linear-gradient(135deg, #1e3a5f 0%, #1a2d4a 100%); border: 1px solid #2a4a7f; }
+  .q-card.q1 { background: linear-gradient(135deg, #1e4a3a 0%, #1a3a2d 100%); border: 1px solid #2a6a4f; }
+  .q-tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .q4 .q-tag { color: var(--blue); }
+  .q1 .q-tag { color: var(--green); }
+  .q-period { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+  .q-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+  .q-row:last-child { border-bottom: none; font-size: 16px; font-weight: 800; padding-top: 14px; }
+  .q-row .label { color: var(--muted); }
+  .q-row .val-pos { color: var(--green); font-weight: 700; }
+  .q-row .val-neg { color: var(--red); font-weight: 600; }
+
+  /* CLIENT PILLS */
+  .client-pill {
+    display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px;
+    border-radius: 20px; margin-right: 4px; white-space: nowrap;
+  }
+  .cp1 { background: rgba(99,102,241,0.15); color: var(--accent); }
+  .cp2 { background: rgba(6,182,212,0.15); color: var(--cyan); }
+  .cp3 { background: rgba(245,158,11,0.15); color: var(--yellow); }
+  .cp4 { background: rgba(34,197,94,0.15); color: var(--green); }
+  .cp5 { background: rgba(168,85,247,0.15); color: var(--purple); }
+
+  /* FOOTER */
+  footer {
+    text-align: center; padding: 24px 40px; color: var(--muted); font-size: 12px;
+    border-top: 1px solid var(--border); margin-top: 8px;
+  }
+
+  /* CHART CANVAS */
+  .chart-wrap { position: relative; }
+
+  /* MARGIN BAR */
+  .margin-bar-wrap { margin-top: 16px; }
+  .margin-bar-bg { background: rgba(255,255,255,0.08); border-radius: 20px; height: 8px; overflow: hidden; }
+  .margin-bar-fill { height: 100%; border-radius: 20px; background: linear-gradient(90deg, var(--green), #16a34a); transition: width 1s; }
+  .margin-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+
+  @media (max-width: 1100px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .charts-row { grid-template-columns: 1fr; }
+    .quarter-row { grid-template-columns: 1fr; }
+    .header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <h1>Estudio Creativo Vega SL</h1>
+    <p>Financial Dashboard &nbsp;·&nbsp; Oct 2025 – Mar 2026 &nbsp;·&nbsp; All amounts in USD ($)</p>
+  </div>
+  <span class="badge">Generated May 8, 2026</span>
+</div>
+
+<div class="main">
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid">
+    <div class="kpi green">
+      <div class="kpi-label">Net Revenue</div>
+      <div class="kpi-value">$26,750</div>
+      <div class="kpi-sub">10 income invoices</div>
+    </div>
+    <div class="kpi red">
+      <div class="kpi-label">Total Expenses</div>
+      <div class="kpi-value">$588.63</div>
+      <div class="kpi-sub">6 vendor invoices</div>
+    </div>
+    <div class="kpi blue">
+      <div class="kpi-label">Net Profit</div>
+      <div class="kpi-value">$26,161</div>
+      <div class="kpi-sub">Revenue − Expenses</div>
+    </div>
+    <div class="kpi purple">
+      <div class="kpi-label">Profit Margin</div>
+      <div class="kpi-value">97.8%</div>
+      <div class="margin-bar-wrap">
+        <div class="margin-label"><span>Expenses 2.2%</span><span>Profit</span></div>
+        <div class="margin-bar-bg"><div class="margin-bar-fill" style="width:97.8%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW -->
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-title"><span class="dot-blue"></span>Monthly Revenue vs Expenses</div>
+      <div class="chart-wrap"><canvas id="monthlyChart" height="220"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot-purple"></span>Revenue by Client</div>
+      <div class="chart-wrap"><canvas id="clientChart" height="220"></canvas></div>
+    </div>
+  </div>
+
+  <!-- QUARTERLY -->
+  <div class="quarter-row">
+    <div class="q-card q4">
+      <div class="q-tag">Q4 2025</div>
+      <div class="q-period">October – December</div>
+      <div class="q-row"><span class="label">Income (5 invoices)</span><span class="val-pos">$11,650.00</span></div>
+      <div class="q-row"><span class="label">Expenses (3 invoices)</span><span class="val-neg">−$255.24</span></div>
+      <div class="q-row"><span class="label">Net Profit</span><span class="val-pos">$11,394.76</span></div>
+    </div>
+    <div class="q-card q1">
+      <div class="q-tag">Q1 2026</div>
+      <div class="q-period">January – March</div>
+      <div class="q-row"><span class="label">Income (5 invoices)</span><span class="val-pos">$15,100.00</span></div>
+      <div class="q-row"><span class="label">Expenses (3 invoices)</span><span class="val-neg">−$333.39</span></div>
+      <div class="q-row"><span class="label">Net Profit</span><span class="val-pos">$14,766.61</span></div>
+    </div>
+  </div>
+
+  <!-- INCOME TABLE -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title"><span class="dot-green"></span>Income Invoices &nbsp;<span style="color:var(--text);font-size:12px;font-weight:400;text-transform:none;letter-spacing:0">10 invoices · Total $26,750.00</span></div>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Invoice #</th>
+          <th>Client</th>
+          <th>Description</th>
+          <th>Net</th>
+          <th>VAT 21%</th>
+          <th>W/H 15%</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="date-cell">Oct 12, 2025</td>
+          <td><span class="inv-num">F-2025-018</span></td>
+          <td class="client-name"><span class="client-pill cp4">Restaurante La Mesa SL</span></td>
+          <td class="desc-cell">Full visual identity (logo, brand manual, stationery)</td>
+          <td class="amount-pos">$1,800.00</td>
+          <td class="amount-neutral">$378.00</td>
+          <td class="amount-neg">−$270.00</td>
+          <td class="amount-pos">$1,908.00</td>
+        </tr>
+        <tr>
+          <td class="date-cell">Oct 28, 2025</td>
+          <td><span class="inv-num">F-2025-019</span></td>
+          <td class="client-name"><span class="client-pill cp1">Tech Startup Innova SL</span></td>
+          <td class="desc-cell">Responsive web design &amp; dev (landing + 5 sections)</td>
+          <td class="amount-pos">$3,500.00</td>
+          <td class="amount-neutral">$735.00</td>
+          <td class="amount-neg">−$525.00</td>
+          <td class="amount-pos">$3,710.00</td>
+        </tr>
+        <tr>
+          <td class="date-cell">Nov 15, 2025</td>
+          <td><span class="inv-num">F-2025-020</span></td>
+          <td class="client-name"><span class="client-pill cp3">Boutique Mariposa SL</span></td>
+          <td class="desc-cell">Fall-winter product catalog + photo shoot</td>
+          <td class="amount-pos">$1,200.00</td>
+          <td class="amount-neutral">$252.00</td>
+          <td class="amount-neg">−$180.00</td>
+          <td class="amount-pos">$1,272.00</td>
+        </tr>
+        <tr>
+          <td class="date-cell">Nov 30, 2025</td>
+          <td><span class="inv-num">F-2025-021</span></td>
+          <td class="client-name"><span class="client-pill cp2">Hotel Costa Blanca SA</span></td>
+          <td class="desc-cell">Booking website + engine + technical SEO audit</td>
+          <td class="amount-pos">$4,200.00</td>
+          <td class="amount-neutral">$882.00</td>
+          <td class="amount-neg">−$630.00</td>
+          <td class="amount-pos">$4,452.00</td>
+        </tr>
+        <tr>
+          <td class="date-cell">Dec 18, 2025</td>
+          <td><span class="inv-num">F-2025-022</span></td>
+          <td class="client-name"><span class="client-pill cp1">Tech Startup Innova SL</span></td>
+          <td class="desc-cell">Web maintenance Q4 2025 (updates &amp; support)</td>
+          <td class="amount-pos">$950.00</td>
+          <td class="amount-neutral">$199.50</td>
+          <td class="amount-neg">−$142.50</td>
+          <td class="amount-pos">$1,007.00</td>
+        </tr>
+        <tr>
+          <td class="date-cell">Jan 14, 2026</td>
+          <td><span class="inv-num">F-2026-001</span></td>
+          <td class="client-name"><span class="client-pill cp5">Centro Medico Salud+ SL</span></td>
+          <td class="desc-cell">Corporate identity for new clinic (naming, logo, apps)</td>
+          <td class="amount-pos">$2,400.00</td>
+          <td class="amount-neutral">$504.00</td>
+          <td class="amount-neg">−$360.00</td>
+          <td class="amount-pos">$2,544.00</td>
+        </tr>
+        <tr>
+          <td class="date-cell">Jan 29, 2026</td>
+          <td><span class="inv-num">F-2026-002</span></td>
+          <td class="client-name"><span class="client-pill cp4">Restaurante La Mesa SL</span></td>
+          <td class="desc-cell">Social media management Jan 2026 (IG + TikTok)</td>
+          <td class="amount-pos">$600.00</td>
+          <td class="amount-neutral">$126.00</td>
+          <td class="amount-neg">−$90.00</td>
+          <td class="amount-pos">$636.00</td>
+        </tr>
+        <tr>
+          <td class="date-cell">Feb 12, 2026</td>
+          <td><span class="inv-num">F-2026-003</span></td>
+          <td class="client-name"><span class="client-pill cp2">Hotel Costa Blanca SA</span></td>
+          <td class="desc-cell">SEO content campaign + Google Ads setup (Feb)</td>
+          <td class="amount-pos">$2,800.00</td>
+          <td class="amount-neutral">$588.00</td>
+          <td class="amount-neg">−$420.00</td>
+          <td class="amount-pos">$2,968.00</td>
+        </tr>
+        <tr>
+          <td class="date-cell">Feb 27, 2026</td>
+          <td><span class="inv-num">F-2026-004</span></td>
+          <td class="client-name"><span class="client-pill cp1">Tech Startup Innova SL</span></td>
+          <td class="desc-cell">Full admin dashboard redesign (UX/UI + frontend)</td>
+          <td class="amount-pos">$3,800.00</td>
+          <td class="amount-neutral">$798.00</td>
+          <td class="amount-neg">−$570.00</td>
+          <td class="amount-pos">$4,028.00</td>
+        </tr>
+        <tr>
+          <td class="date-cell">Mar 20, 2026</td>
+          <td><span class="inv-num">F-2026-005</span></td>
+          <td class="client-name"><span class="client-pill cp3">Boutique Mariposa SL</span></td>
+          <td class="desc-cell">Shopify online store (setup, design, product migration)</td>
+          <td class="amount-pos">$5,500.00</td>
+          <td class="amount-neutral">$1,155.00</td>
+          <td class="amount-neg">−$825.00</td>
+          <td class="amount-pos">$5,830.00</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="4" style="color:var(--muted);font-size:12px;">TOTAL · 10 invoices</td>
+          <td class="amount-pos">$26,750.00</td>
+          <td class="amount-neutral">$5,617.50</td>
+          <td class="amount-neg">−$4,012.50</td>
+          <td class="amount-pos">$28,355.00</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- BOTTOM ROW: expenses + P&L -->
+  <div style="display:grid;grid-template-columns:1fr 360px;gap:16px;align-items:start">
+
+    <!-- EXPENSE TABLE -->
+    <div class="card">
+      <div class="card-title"><span class="dot-red"></span>Expense Invoices &nbsp;<span style="color:var(--text);font-size:12px;font-weight:400;text-transform:none;letter-spacing:0">6 invoices · Total $588.63</span></div>
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Expense #</th>
+            <th>Vendor</th>
+            <th>Description</th>
+            <th>Net</th>
+            <th>VAT 21%</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="date-cell">Oct 01, 2025</td>
+            <td><span class="exp-num">ADBE-25-10</span></td>
+            <td>Adobe Systems Inc.</td>
+            <td class="desc-cell">Adobe Creative Cloud All Apps — monthly</td>
+            <td class="amount-neg">$59.99</td>
+            <td class="amount-neutral">$12.60</td>
+            <td class="amount-neg">$72.59</td>
+          </tr>
+          <tr>
+            <td class="date-cell">Nov 05, 2025</td>
+            <td><span class="exp-num">CMC-25-11</span></td>
+            <td>Comcast Business</td>
+            <td class="desc-cell">Business internet 1Gb + office phone line</td>
+            <td class="amount-neg">$49.95</td>
+            <td class="amount-neutral">$10.49</td>
+            <td class="amount-neg">$60.44</td>
+          </tr>
+          <tr>
+            <td class="date-cell">Dec 10, 2025</td>
+            <td><span class="exp-num">CED-25-12</span></td>
+            <td>Con Edison</td>
+            <td class="desc-cell">Office electricity supply (Nov consumption)</td>
+            <td class="amount-neg">$145.30</td>
+            <td class="amount-neutral">$30.51</td>
+            <td class="amount-neg">$175.81</td>
+          </tr>
+          <tr>
+            <td class="date-cell">Jan 15, 2026</td>
+            <td><span class="exp-num">WWK-26-01</span></td>
+            <td>WeWork</td>
+            <td class="desc-cell">Monthly coworking fee (desk + 4h meeting room)</td>
+            <td class="amount-neg">$250.00</td>
+            <td class="amount-neutral">$52.50</td>
+            <td class="amount-neg">$302.50</td>
+          </tr>
+          <tr>
+            <td class="date-cell">Feb 08, 2026</td>
+            <td><span class="exp-num">GOO-26-02</span></td>
+            <td>Google Cloud LLC</td>
+            <td class="desc-cell">Google Workspace Business Standard — 3 accounts</td>
+            <td class="amount-neg">$23.40</td>
+            <td class="amount-neutral">$4.91</td>
+            <td class="amount-neg">$28.31</td>
+          </tr>
+          <tr>
+            <td class="date-cell">Mar 01, 2026</td>
+            <td><span class="exp-num">ADBE-26-03</span></td>
+            <td>Adobe Systems Inc.</td>
+            <td class="desc-cell">Adobe Creative Cloud All Apps — monthly</td>
+            <td class="amount-neg">$59.99</td>
+            <td class="amount-neutral">$12.60</td>
+            <td class="amount-neg">$72.59</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="4" style="color:var(--muted);font-size:12px;">TOTAL · 6 invoices</td>
+            <td class="amount-neg">$588.63</td>
+            <td class="amount-neutral">$123.61</td>
+            <td class="amount-neg">$712.24</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- P&L SUMMARY -->
+    <div class="card">
+      <div class="card-title"><span class="dot-blue"></span>Profit &amp; Loss Summary</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:16px;margin-top:-10px;">Oct 2025 – Mar 2026</div>
+
+      <div class="pl-row">
+        <span class="pl-label bold">Total Net Revenue</span>
+        <span class="amount-pos">$26,750.00</span>
+      </div>
+      <div class="pl-row">
+        <span class="pl-label">VAT Collected (21%)</span>
+        <span class="amount-neutral">$5,617.50</span>
+      </div>
+      <div class="pl-row divider">
+        <span class="pl-label">Tax Withheld by Clients (15%)</span>
+        <span class="amount-neg">−$4,012.50</span>
+      </div>
+      <div class="pl-row" style="margin-bottom:12px">
+        <span class="pl-label bold">Gross Billed to Clients</span>
+        <span style="font-weight:700;color:var(--yellow);">$28,355.00</span>
+      </div>
+      <div class="pl-row">
+        <span class="pl-label bold">Total Net Expenses</span>
+        <span class="amount-neg">−$588.63</span>
+      </div>
+      <div class="pl-row divider">
+        <span class="pl-label">VAT Paid (deductible)</span>
+        <span class="amount-neg">−$123.61</span>
+      </div>
+      <div class="pl-row total">
+        <span style="color:var(--text);">NET PROFIT</span>
+        <span class="amount-pos">$26,161.37</span>
+      </div>
+
+      <div style="margin-top:20px;padding:14px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:10px;text-align:center;">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.8px;">Profit Margin</div>
+        <div style="font-size:32px;font-weight:900;color:var(--green);">97.8%</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Expenses = only 2.2% of revenue</div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<footer>
+  Estudio Creativo Vega SL &nbsp;·&nbsp; Profit &amp; Loss Report Oct 2025 – Mar 2026 &nbsp;·&nbsp; Data processed locally — no data left your machine
+</footer>
+
+<script>
+// Monthly Revenue vs Expenses Bar Chart
+const months = ['Oct 2025','Nov 2025','Dec 2025','Jan 2026','Feb 2026','Mar 2026'];
+const revenue = [5300, 5400, 950, 3000, 6600, 5500];
+const expenses = [59.99, 49.95, 145.30, 250, 23.40, 59.99];
+
+const ctxBar = document.getElementById('monthlyChart').getContext('2d');
+new Chart(ctxBar, {
+  type: 'bar',
+  data: {
+    labels: months,
+    datasets: [
+      {
+        label: 'Revenue',
+        data: revenue,
+        backgroundColor: 'rgba(34,197,94,0.75)',
+        borderColor: 'rgba(34,197,94,1)',
+        borderWidth: 1.5,
+        borderRadius: 6,
+        borderSkipped: false,
+      },
+      {
+        label: 'Expenses',
+        data: expenses,
+        backgroundColor: 'rgba(239,68,68,0.75)',
+        borderColor: 'rgba(239,68,68,1)',
+        borderWidth: 1.5,
+        borderRadius: 6,
+        borderSkipped: false,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { labels: { color: '#94a3b8', font: { size: 12 }, boxWidth: 12 } },
+      tooltip: {
+        callbacks: {
+          label: ctx => ' $' + ctx.parsed.y.toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2})
+        },
+        backgroundColor: '#1a1d27', borderColor: '#2a2f45', borderWidth: 1,
+        titleColor: '#f1f5f9', bodyColor: '#94a3b8',
+      }
+    },
+    scales: {
+      x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 11 } } },
+      y: {
+        grid: { color: 'rgba(255,255,255,0.05)' },
+        ticks: {
+          color: '#94a3b8', font: { size: 11 },
+          callback: v => '$' + v.toLocaleString('en-US')
+        }
+      }
+    }
+  }
+});
+
+// Client Donut Chart
+const clientLabels = ['Tech Startup Innova SL','Hotel Costa Blanca SA','Boutique Mariposa SL','Restaurante La Mesa SL','Centro Medico Salud+ SL'];
+const clientData = [8250, 7000, 6700, 2400, 2400];
+const clientColors = ['rgba(99,102,241,0.9)','rgba(6,182,212,0.9)','rgba(245,158,11,0.9)','rgba(34,197,94,0.9)','rgba(168,85,247,0.9)'];
+
+const ctxDoughnut = document.getElementById('clientChart').getContext('2d');
+new Chart(ctxDoughnut, {
+  type: 'doughnut',
+  data: {
+    labels: clientLabels,
+    datasets: [{
+      data: clientData,
+      backgroundColor: clientColors,
+      borderColor: '#1a1d27',
+      borderWidth: 3,
+      hoverBorderWidth: 2,
+    }]
+  },
+  options: {
+    responsive: true,
+    cutout: '65%',
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          color: '#94a3b8', font: { size: 11 }, boxWidth: 10, padding: 12,
+          generateLabels: chart => {
+            const data = chart.data;
+            return data.labels.map((label, i) => ({
+              text: label.replace(' SL','').replace(' SA','') + '  $' + data.datasets[0].data[i].toLocaleString('en-US'),
+              fillStyle: data.datasets[0].backgroundColor[i],
+              strokeStyle: data.datasets[0].borderColor,
+              lineWidth: 0, index: i,
+            }));
+          }
+        }
+      },
+      tooltip: {
+        callbacks: {
+          label: ctx => ' $' + ctx.parsed.toLocaleString('en-US') + ' (' + ((ctx.parsed/26750)*100).toFixed(1) + '%)'
+        },
+        backgroundColor: '#1a1d27', borderColor: '#2a2f45', borderWidth: 1,
+        titleColor: '#f1f5f9', bodyColor: '#94a3b8',
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>
